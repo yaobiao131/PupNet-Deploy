@@ -1,9 +1,12 @@
 // -----------------------------------------------------------------------------
-// PROJECT   : PupNet
-// COPYRIGHT : Andy Thomas (C) 2022-25
-// LICENSE   : GPL-3.0-or-later
-// HOMEPAGE  : https://github.com/kuiperzone/PupNet
-//
+// SPDX-FileNotice: PupNet Deploy
+// SPDX-License-Identifier: GPL-3.0-or-later
+// SPDX-FileCopyrightText: © 2022-2026 Andrew Thomas <kuiperzone@users.noreply.github.com>
+// SPDX-ProjectHomePage: https://github.com/kuiperzone/PupNet
+// SPDX-FileType: Source
+// SPDX-FileComment: This is NOT AI generated source code but was created with human thinking.
+// -----------------------------------------------------------------------------
+
 // PupNet is free software: you can redistribute it and/or modify it under
 // the terms of the GNU Affero General Public License as published by the Free Software
 // Foundation, either version 3 of the License, or (at your option) any later version.
@@ -14,11 +17,13 @@
 //
 // You should have received a copy of the GNU Affero General Public License along
 // with PupNet. If not, see <https://www.gnu.org/licenses/>.
-// -----------------------------------------------------------------------------
 
 using System.Diagnostics;
+using System.Formats.Tar;
 using System.IO.Compression;
 using System.Runtime.InteropServices;
+using System.Security.Cryptography;
+using System.Text;
 using Microsoft.VisualBasic.FileIO;
 
 namespace KuiperZone.PupNet;
@@ -73,7 +78,7 @@ public class FileOps(string? root = null)
 
             if (!File.Exists(filepath))
             {
-                WriteLine(" ... FAILED");
+                WriteLine(" ... FAILED: " + nameof(AssertExists));
                 throw new FileNotFoundException("File not found " + filepath);
             }
 
@@ -96,7 +101,7 @@ public class FileOps(string? root = null)
             }
             catch
             {
-                WriteLine(" ... FAILED");
+                WriteLine(" ... FAILED: " + nameof(CreateDirectory));
                 throw;
             }
         }
@@ -117,7 +122,7 @@ public class FileOps(string? root = null)
             }
             catch
             {
-                WriteLine(" ... FAILED");
+                WriteLine(" ... FAILED: " + nameof(RemoveDirectory));
                 throw;
             }
         }
@@ -145,7 +150,7 @@ public class FileOps(string? root = null)
             }
             catch
             {
-                WriteLine(" ... FAILED");
+                WriteLine(" ... FAILED: " + nameof(CopyDirectory));
                 throw;
             }
         }
@@ -172,7 +177,7 @@ public class FileOps(string? root = null)
             }
             catch
             {
-                WriteLine(" ... FAILED");
+                WriteLine(" ... FAILED: " + nameof(CopyFile));
                 throw;
             }
         }
@@ -193,7 +198,7 @@ public class FileOps(string? root = null)
             }
             catch
             {
-                WriteLine(" ... FAILED");
+                WriteLine(" ... FAILED: " + nameof(WriteFile));
                 throw;
             }
         }
@@ -219,7 +224,37 @@ public class FileOps(string? root = null)
             }
             catch
             {
-                WriteLine(" ... FAILED");
+                WriteLine(" ... FAILED: " + nameof(Zip));
+                throw;
+            }
+        }
+    }
+
+    /// <summary>
+    /// Zips the directory and writes to output.
+    /// </summary>
+    public void TarGz(string? directory, string? output)
+    {
+        if (!string.IsNullOrEmpty(directory) && !string.IsNullOrEmpty(output))
+        {
+            try
+            {
+                if (File.Exists(output))
+                {
+                    File.Delete(output);
+                }
+
+                Write("Tar.gz: ", directory);
+
+                using var fs = File.Create(output);
+                using var gzip = new GZipStream(fs, CompressionLevel.Optimal);
+                TarFile.CreateFromDirectory(directory, gzip, false);
+
+                WriteLine(" ... OK");
+            }
+            catch
+            {
+                WriteLine(" ... FAILED: " + nameof(Zip));
                 throw;
             }
         }
@@ -328,6 +363,28 @@ public class FileOps(string? root = null)
         return 0;
     }
 
+    /// <summary>
+    /// Returns a SHA-256 string of the given filepath.
+    /// </summary>
+    public static string GetSha256(string path)
+    {
+        using var fs = File.Open(path, FileMode.Open);
+        fs.Position = 0;
+
+        using var hasher = SHA256.Create();
+        var value = hasher.ComputeHash(fs);
+
+        var sb = new StringBuilder(64);
+
+        for (int n = 0; n < value.Length; ++n)
+        {
+            sb.Append($"{value[n]:x2}");
+        }
+
+        return sb.ToString();
+    }
+
+
     private void Write(string? prefix, string? path = null)
     {
         if (ShowCommands)
@@ -353,4 +410,3 @@ public class FileOps(string? root = null)
     }
 
 }
-

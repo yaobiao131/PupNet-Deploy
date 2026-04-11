@@ -1,9 +1,12 @@
 // -----------------------------------------------------------------------------
-// PROJECT   : PupNet
-// COPYRIGHT : Andy Thomas (C) 2022-25
-// LICENSE   : GPL-3.0-or-later
-// HOMEPAGE  : https://github.com/kuiperzone/PupNet
-//
+// SPDX-FileNotice: PupNet Deploy
+// SPDX-License-Identifier: GPL-3.0-or-later
+// SPDX-FileCopyrightText: © 2022-2026 Andrew Thomas <kuiperzone@users.noreply.github.com>
+// SPDX-ProjectHomePage: https://github.com/kuiperzone/PupNet
+// SPDX-FileType: Source
+// SPDX-FileComment: This is NOT AI generated source code but was created with human thinking.
+// -----------------------------------------------------------------------------
+
 // PupNet is free software: you can redistribute it and/or modify it under
 // the terms of the GNU Affero General Public License as published by the Free Software
 // Foundation, either version 3 of the License, or (at your option) any later version.
@@ -14,7 +17,6 @@
 //
 // You should have received a copy of the GNU Affero General Public License along
 // with PupNet. If not, see <https://www.gnu.org/licenses/>.
-// -----------------------------------------------------------------------------
 
 using System.Runtime.InteropServices;
 using System.Text;
@@ -83,23 +85,21 @@ public class BuildHost
 
         if (Builder.BuildShareMeta != null)
         {
-            ExpandedMetaInfo = Macros.Expand(Configuration.ReadAssociatedFile(Configuration.MetaFile), true, Path.GetFileName(Configuration.MetaFile));
-
             if (ExpandedDesktop == null)
             {
                 // AppImage can launch from standalone file, desktop not required
-                if (string.IsNullOrEmpty(Configuration.StartCommand) && Builder.Kind != PackageKind.AppImage && Builder.Kind != PackageKind.Zip)
+                if (string.IsNullOrEmpty(Configuration.StartCommand) &&
+                    Builder.Kind != PackageKind.Auto && Builder.Kind != PackageKind.Zip &&
+                    Builder.Kind != PackageKind.Gz && Builder.Kind != PackageKind.AppImage)
                 {
                     Builder.WarningSink.Add($"Note. No desktop file or {nameof(Configuration.StartCommand)} is configured\n" +
                         "There will be no way to start the application once installed - are you sure?");
                 }
             }
 
-            if (ExpandedMetaInfo == null)
-            {
-                Builder.WarningSink.Add("Note. AppStream metadata (.metainfo.xml) file not provided");
-            }
-            else
+            ExpandedMetaInfo = Macros.Expand(Configuration.ReadAssociatedFile(Configuration.MetaFile), true, Path.GetFileName(Configuration.MetaFile));
+
+            if (ExpandedMetaInfo != null)
             {
                 try
                 {
@@ -109,6 +109,10 @@ public class BuildHost
                 {
                     Builder.WarningSink.Add($"CRITICAL. AppStream metadata {Path.GetFileName(Configuration.MetaFile)} is not valid XML. {e.Message}");
                 }
+            }
+            else
+            {
+                Builder.WarningSink.Add("Note. AppStream metadata (.metainfo.xml) file not provided");
             }
         }
 
@@ -130,9 +134,9 @@ public class BuildHost
                 $"Use the argument --{ArgumentReader.ArchLongArg} to specify.");
         }
 
-        if ((Builder.Runtime.IsLinuxRuntime && !Builder.Kind.TargetsLinux()) ||
-            (Builder.Runtime.IsWindowsRuntime && !Builder.Kind.TargetsWindows()) ||
-            (Builder.Runtime.IsOsxRuntime && !Builder.Kind.TargetsOsx()))
+        if ((Builder.Runtime.IsLinuxRuntime && !Builder.Kind.CanTargetLinux()) ||
+            (Builder.Runtime.IsWindowsRuntime && !Builder.Kind.CanTargetWindows()) ||
+            (Builder.Runtime.IsOsxRuntime && !Builder.Kind.CanTargetOsx()))
         {
             Builder.WarningSink.Add($"WARNING. You are going to package the runtime '{Builder.Runtime.RuntimeId}' as {Builder.Kind}\n" +
                 "Are you sure?");
@@ -227,6 +231,10 @@ public class BuildHost
             Console.WriteLine("OUTPUT OK:");
             Console.WriteLine(Builder.OutputPath);
 
+            Console.WriteLine();
+            Console.WriteLine("FILE SHA-256:");
+            Console.WriteLine(FileOps.GetSha256(Builder.OutputPath));
+
             return true;
         }
 
@@ -273,8 +281,10 @@ public class BuildHost
         AppendPair(sb, nameof(Arguments.Runtime), Arguments.Runtime);
         AppendPair(sb, nameof(Arguments.Arch), Arguments.Arch ?? $"Auto ({Builder.PackageArch})");
         AppendPair(sb, nameof(Arguments.Build), Arguments.Build);
+        AppendPair(sb, "GPG ID", Builder.IsGpgSigning ? Configuration.PublisherGpgKeyId : "N/A");
         AppendPair(sb, nameof(Builder.OutputName), Builder.OutputName);
         AppendPair(sb, nameof(Builder.OutputDirectory), Builder.OutputDirectory);
+
 
         if (verbose)
         {
@@ -514,4 +524,3 @@ public class BuildHost
         return list;
     }
 }
-

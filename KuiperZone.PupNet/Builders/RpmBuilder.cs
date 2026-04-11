@@ -1,9 +1,12 @@
 // -----------------------------------------------------------------------------
-// PROJECT   : PupNet
-// COPYRIGHT : Andy Thomas (C) 2022-25
-// LICENSE   : GPL-3.0-or-later
-// HOMEPAGE  : https://github.com/kuiperzone/PupNet
-//
+// SPDX-FileNotice: PupNet Deploy
+// SPDX-License-Identifier: GPL-3.0-or-later
+// SPDX-FileCopyrightText: © 2022-2026 Andrew Thomas <kuiperzone@users.noreply.github.com>
+// SPDX-ProjectHomePage: https://github.com/kuiperzone/PupNet
+// SPDX-FileType: Source
+// SPDX-FileComment: This is NOT AI generated source code but was created with human thinking.
+// -----------------------------------------------------------------------------
+
 // PupNet is free software: you can redistribute it and/or modify it under
 // the terms of the GNU Affero General Public License as published by the Free Software
 // Foundation, either version 3 of the License, or (at your option) any later version.
@@ -14,7 +17,6 @@
 //
 // You should have received a copy of the GNU Affero General Public License along
 // with PupNet. If not, see <https://www.gnu.org/licenses/>.
-// -----------------------------------------------------------------------------
 
 using System.Text;
 
@@ -50,7 +52,7 @@ public sealed class RpmBuilder : PackageBuilder
 
         // We are going to put the final rpm file in a temporary directory.
         // The rpmbuild directory always creates a subdirectory and filename of its own volition,
-        // or form: "out/X86_64/appname-1.5.0-1.x86_64.rpm". We need to find it later and
+        // of form: "out/X86_64/appname-1.5.0-1.x86_64.rpm". We need to find it later and
         // and copy it to our final output location.
         _buildOutputDirectory = $"{buildDir}/out";
 
@@ -62,8 +64,10 @@ public sealed class RpmBuilder : PackageBuilder
         // Note. v1.9.1 -- added "--noclean" option.
 
         var cmd = $"rpmbuild -bb --noclean \"{ManifestBuildPath}\"";
-        cmd += $" --define \"_topdir {buildDir}\" --buildroot=\"{BuildRoot}\"";
-        cmd += $" --define \"_rpmdir {_buildOutputDirectory}\" --define \"_build_id_links none\"";
+        cmd += $" --define \"_topdir {buildDir}\"";
+        cmd += $" --buildroot=\"{BuildRoot}\"";
+        cmd += $" --define \"_rpmdir {_buildOutputDirectory}\"";
+        cmd += $" --define \"_build_id_links none\"";
 
         if (Arguments.IsVerbose)
         {
@@ -81,7 +85,7 @@ public sealed class RpmBuilder : PackageBuilder
     {
         get
         {
-            var output = Path.GetFileName(Configuration.Arguments.Output);
+            var output = Path.GetFileName(Arguments.Output);
 
             if (string.IsNullOrEmpty(output))
             {
@@ -199,12 +203,20 @@ public sealed class RpmBuilder : PackageBuilder
     {
         Environment.SetEnvironmentVariable("SOURCE_DATE_EPOCH", new DateTimeOffset(DateTime.UtcNow).ToUnixTimeSeconds().ToString());
 
-        base.BuildPackage();
+        BuildPackage(false);
         _specFilesHack = false;
 
         // Now, we have built rpm to temporary directory (see PackageCommands in constructor).
         // We have a special method to locate the file, and we will copy to final output location.
         Operations.CopyFile(LocatePackageFilePath(), OutputPath);
+
+        // Must sign after
+        if (IsGpgSigning)
+        {
+            Operations.Execute("rpmsign", $"--define \"_gpg_name {Configuration.PublisherGpgKeyId}\" --addsign \"{OutputPath}\"");
+        }
+
+        BuildArtifacts();
     }
 
     private string LocatePackageFilePath(string? dir = null)
@@ -228,7 +240,7 @@ public sealed class RpmBuilder : PackageBuilder
             }
 
             // In this case, we expect a single rpm file
-            var files = Directory.GetFiles(dir, "*.rpm", System.IO.SearchOption.TopDirectoryOnly);
+            var files = Directory.GetFiles(dir, "*.rpm", SearchOption.TopDirectoryOnly);
 
             if (files.Length == 1)
             {

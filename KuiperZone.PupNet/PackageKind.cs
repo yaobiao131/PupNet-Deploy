@@ -1,9 +1,12 @@
 // -----------------------------------------------------------------------------
-// PROJECT   : PupNet
-// COPYRIGHT : Andy Thomas (C) 2022-25
-// LICENSE   : GPL-3.0-or-later
-// HOMEPAGE  : https://github.com/kuiperzone/PupNet
-//
+// SPDX-FileNotice: PupNet Deploy
+// SPDX-License-Identifier: GPL-3.0-or-later
+// SPDX-FileCopyrightText: © 2022-2026 Andrew Thomas <kuiperzone@users.noreply.github.com>
+// SPDX-ProjectHomePage: https://github.com/kuiperzone/PupNet
+// SPDX-FileType: Source
+// SPDX-FileComment: This is NOT AI generated source code but was created with human thinking.
+// -----------------------------------------------------------------------------
+
 // PupNet is free software: you can redistribute it and/or modify it under
 // the terms of the GNU Affero General Public License as published by the Free Software
 // Foundation, either version 3 of the License, or (at your option) any later version.
@@ -14,7 +17,6 @@
 //
 // You should have received a copy of the GNU Affero General Public License along
 // with PupNet. If not, see <https://www.gnu.org/licenses/>.
-// -----------------------------------------------------------------------------
 
 using System.Runtime.InteropServices;
 
@@ -26,9 +28,19 @@ namespace KuiperZone.PupNet;
 public enum PackageKind
 {
     /// <summary>
-    /// Simple zip. All platforms.
+    /// Windows zip file on win builds, tar.gz on all others.
     /// </summary>
-    Zip = 0,
+    Auto = 0,
+
+    /// <summary>
+    /// Zip file on all platforms.
+    /// </summary>
+    Zip,
+
+    /// <summary>
+    /// Tar.gz on all platforms.
+    /// </summary>
+    Gz,
 
     /// <summary>
     /// AppImage. Linux only.
@@ -62,63 +74,61 @@ public enum PackageKind
 public static class DeployKindExtension
 {
     /// <summary>
-    /// Gets file extension.
-    /// </summary>
-    public static string GetFileExt(this PackageKind kind)
-    {
-        switch (kind)
-        {
-            case PackageKind.Zip: return ".zip";
-            case PackageKind.AppImage: return ".AppImage";
-            case PackageKind.Deb: return ".deb";
-            case PackageKind.Rpm: return ".rpm";
-            case PackageKind.Flatpak: return ".flatpak";
-            case PackageKind.Setup: return ".exe";
-            default: throw new ArgumentException($"Invalid {nameof(PackageKind)} {kind}");
-        }
-    }
-
-    /// <summary>
     /// Gets whether compatible with linux.
     /// </summary>
-    public static bool TargetsLinux(this PackageKind kind, bool exclusive = false)
+    public static bool CanTargetLinux(this PackageKind kind)
     {
         switch (kind)
         {
             case PackageKind.Zip:
+            case PackageKind.Gz:
             case PackageKind.AppImage:
             case PackageKind.Deb:
             case PackageKind.Rpm:
             case PackageKind.Flatpak:
-                return !exclusive || (!TargetsWindows(kind) && !TargetsOsx(kind));
+                return true;
             default:
                 return false;
         }
     }
 
     /// <summary>
-    /// Gets whether compatible with windows.
+    /// Gets whether exclusive to linux.
     /// </summary>
-    public static bool TargetsWindows(this PackageKind kind, bool exclusive = false)
+    public static bool IsLinuxExclusive(this PackageKind kind)
     {
-        if (kind == PackageKind.Zip || kind == PackageKind.Setup)
-        {
-            return !exclusive || (!TargetsLinux(kind) && !TargetsOsx(kind));
-        }
+        return kind != PackageKind.Zip && CanTargetLinux(kind);
+    }
 
-        return false;
+    /// <summary>
+    /// Gets whether compatible with Window.
+    /// </summary>
+    public static bool CanTargetWindows(this PackageKind kind)
+    {
+        return kind == PackageKind.Zip || kind == PackageKind.Setup;
+    }
+
+    /// <summary>
+    /// Gets whether exclusive to Windows.
+    /// </summary>
+    public static bool IsWindowsExclusive(this PackageKind kind)
+    {
+        return kind != PackageKind.Zip && CanTargetWindows(kind);
     }
 
     /// <summary>
     /// Gets whether compatible with OSX.
     /// </summary>
-    public static bool TargetsOsx(this PackageKind kind, bool exclusive = false)
+    public static bool CanTargetOsx(this PackageKind kind)
     {
-        if (kind == PackageKind.Zip)
-        {
-            return !exclusive || (!TargetsLinux(kind) && !TargetsOsx(kind));
-        }
+        return kind == PackageKind.Zip;
+    }
 
+    /// <summary>
+    /// Gets whether exclusive to OSX.
+    /// </summary>
+    public static bool IsOsxExclusive(this PackageKind _)
+    {
         return false;
     }
 
@@ -127,22 +137,32 @@ public static class DeployKindExtension
     /// </summary>
     public static bool CanBuildOnSystem(this PackageKind kind)
     {
-        if (kind.TargetsLinux() && RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
+        if (kind.CanTargetLinux() && RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
         {
             return true;
         }
 
-        if (kind.TargetsWindows() && RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+        if (kind.CanTargetWindows() && RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
         {
             return true;
         }
 
-        if (kind.TargetsOsx() && RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
+        if (kind.CanTargetOsx() && RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
         {
             return true;
         }
 
         return false;
+    }
+
+    /// <summary>
+    /// Returns true if the package kind can be GPG signed.
+    /// </summary>
+    public static bool CanGpgSign(this PackageKind kind)
+    {
+        // Include future BSD?
+        return !RuntimeInformation.IsOSPlatform(OSPlatform.Windows) &&
+            (kind == PackageKind.AppImage || kind == PackageKind.Rpm || kind == PackageKind.Flatpak);
     }
 
 }

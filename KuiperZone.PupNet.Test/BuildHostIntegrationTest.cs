@@ -1,9 +1,12 @@
 // -----------------------------------------------------------------------------
-// PROJECT   : PupNet
-// COPYRIGHT : Andy Thomas (C) 2022-25
-// LICENSE   : GPL-3.0-or-later
-// HOMEPAGE  : https://github.com/kuiperzone/PupNet
-//
+// SPDX-FileNotice: PupNet Deploy
+// SPDX-License-Identifier: GPL-3.0-or-later
+// SPDX-FileCopyrightText: © 2022-2026 Andrew Thomas <kuiperzone@users.noreply.github.com>
+// SPDX-ProjectHomePage: https://github.com/kuiperzone/PupNet
+// SPDX-FileType: Source
+// SPDX-FileComment: This is NOT AI generated source code but was created with human thinking.
+// -----------------------------------------------------------------------------
+
 // PupNet is free software: you can redistribute it and/or modify it under
 // the terms of the GNU Affero General Public License as published by the Free Software
 // Foundation, either version 3 of the License, or (at your option) any later version.
@@ -14,37 +17,44 @@
 //
 // You should have received a copy of the GNU Affero General Public License along
 // with PupNet. If not, see <https://www.gnu.org/licenses/>.
-// -----------------------------------------------------------------------------
 
+using System.Runtime.InteropServices;
 using Xunit;
 
 namespace KuiperZone.PupNet.Test;
 
 /// <summary>
-/// This goes a little beyond the scope of unit test, and performs an "integration test" against <see cref="BuildHost"/>.
-/// To do this, we must have installed all the third-party builder-tools and we will actually produce a dummy package
-/// output for each test. Although not ideal, it is necessary as testing for each package output kind prior to releasing
-/// the software is otherwise an intensive and error prone exercise. Here, we run the tests only in RELEASE builds only
-/// as each test execution blocks. It is recommended to run the tests with "dotnet test -c Release" ON MOST PLATFORMS
-/// prior to releasing a new version of pupnet. NOTE. Cannot be used with Flatpak or Windows Setup (damn!).
+/// This goes a little beyond the scope of unit test, and performs an "integration test" against <see
+/// cref="BuildHost"/>. To do this, we must have installed all the third-party builder-tools and we will actually
+/// produce a dummy package output for each test. Here, we run the tests only in RELEASE builds only as each test
+/// execution blocks. It is recommended to run the tests with "dotnet test -c Release" ON MOST PLATFORMS prior to
+/// releasing a new version of pupnet. NOTE. Cannot be used with Flatpak or Windows Setup.
 /// </summary>
 public class BuildHostIntegrationTest
 {
+#if DEBUG
+    public static readonly bool IsDebug = true;
+#else
+    public static readonly bool IsDebug;
+#endif
+
     [Fact]
     public void BuildZip_EnsureBuildSucceedsAndOutputExists()
     {
         // We can always test zip
         Assert_BuildPackage(PackageKind.Zip, false);
         Assert_BuildPackage(PackageKind.Zip, true);
+
+        Assert_BuildPackage(PackageKind.Gz, false);
+        Assert_BuildPackage(PackageKind.Gz, true);
     }
 
-
-#if !DEBUG
     [Fact]
     public void BuildThirdParty_EnsureBuildSucceedsAndOutputExists()
     {
-        if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
+        if (IsDebug && RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
         {
+            // Not able to test flatpak
             Assert_BuildPackage(PackageKind.AppImage, false);
             Assert_BuildPackage(PackageKind.AppImage, true);
 
@@ -54,10 +64,14 @@ public class BuildHostIntegrationTest
             Assert_BuildPackage(PackageKind.Rpm, false);
             Assert_BuildPackage(PackageKind.Rpm, true);
         }
-    }
-#endif
 
-    private void Assert_BuildPackage(PackageKind kind, bool complete, bool assertOutput = true)
+        if (IsDebug && RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+        {
+            Assert_BuildPackage(PackageKind.Setup, true);
+        }
+    }
+
+    private static void Assert_BuildPackage(PackageKind kind, bool complete, bool assertOutput = true)
     {
         string? metadata = null;
         string? manifest = null;
@@ -73,7 +87,7 @@ public class BuildHostIntegrationTest
             manifest = host.Builder.ManifestContent;
 
             // Regression test - test for correct icon
-            if (host.Builder.IsLinuxExclusive)
+            if (host.Builder.Kind.IsLinuxExclusive())
             {
                 // If we do not define icon (i.e complete == false),
                 // we still get default icon on Linux
@@ -96,17 +110,16 @@ public class BuildHostIntegrationTest
                 }
             }
 
-            if (host.Builder.IsOsxExclusive)
+            if (host.Builder.Kind.IsOsxExclusive())
             {
                 // Test here
             }
 
-            if (host.Builder.IsWindowsExclusive)
+            if (host.Builder.Kind.IsWindowsExclusive())
             {
                 // Windows? We are not declaring Windows icon currently - must be null
                 Assert.Null(host.Builder.PrimaryIcon);
             }
-
 
             // We do NOT call dotnet publish, and must create dummy app file, otherwise build will fail.
             var appPath = Path.Combine(host.Builder.BuildAppBin, host.Builder.AppExecName);
@@ -175,10 +188,11 @@ public class BuildHostIntegrationTest
             lines.Add($"{nameof(AppFriendlyName)} = Hello World");
             lines.Add($"{nameof(AppId)} = \"com.example.helloworld\"");
             lines.Add($"{nameof(AppVersionRelease)} = 5.4.3[2]");
-            lines.Add($"{nameof(AppShortSummary)} = Test <application> only");
+            lines.Add($"{nameof(AppShortSummary)} = This is a test application summary only");
             lines.Add($"{nameof(AppLicenseId)} = LicenseRef-LICENSE");
 
             lines.Add($"{nameof(PublisherName)} = Kuiper Zone");
+            lines.Add($"{nameof(PublisherId)} = zone.kuiper");
             lines.Add($"{nameof(PublisherLinkUrl)} = https://example.com");
             lines.Add($"{nameof(PublisherEmail)} = email@example.com");
 
@@ -189,7 +203,7 @@ public class BuildHostIntegrationTest
             // IMPORTANT - SDK must be installed
             lines.Add($"{nameof(FlatpakPlatformRuntime)} = org.freedesktop.Platform");
             lines.Add($"{nameof(FlatpakPlatformSdk)} = org.freedesktop.Sdk");
-            lines.Add($"{nameof(FlatpakPlatformVersion)} = \"23.00\"");
+            lines.Add($"{nameof(FlatpakPlatformVersion)} = \"25.08\"");
             lines.Add($"{nameof(SetupMinWindowsVersion)} = 10");
 
             // Always include metafile We actually need to create the file here
@@ -216,6 +230,8 @@ public class BuildHostIntegrationTest
                 lines.Add($"{nameof(SetupVersionOutput)} = true");
                 lines.Add($"{nameof(SetupUninstallScript)} = uninstall.bat");
                 lines.Add($"{nameof(SetupCommandPrompt)} = Command Prompt");
+
+                lines.Add($"{nameof(ZipVersionOutput)} = false");
 
                 // Need to create dummy icons in order to get the thing to build (we cheat with dummy files).
                 // However, we can't write dummy ico for windows because Setup would fail (needs to be valid icon)

@@ -1,9 +1,12 @@
 // -----------------------------------------------------------------------------
-// PROJECT   : PupNet
-// COPYRIGHT : Andy Thomas (C) 2022-25
-// LICENSE   : GPL-3.0-or-later
-// HOMEPAGE  : https://github.com/kuiperzone/PupNet
-//
+// SPDX-FileNotice: PupNet Deploy
+// SPDX-License-Identifier: GPL-3.0-or-later
+// SPDX-FileCopyrightText: © 2022-2026 Andrew Thomas <kuiperzone@users.noreply.github.com>
+// SPDX-ProjectHomePage: https://github.com/kuiperzone/PupNet
+// SPDX-FileType: Source
+// SPDX-FileComment: This is NOT AI generated source code but was created with human thinking.
+// -----------------------------------------------------------------------------
+
 // PupNet is free software: you can redistribute it and/or modify it under
 // the terms of the GNU Affero General Public License as published by the Free Software
 // Foundation, either version 3 of the License, or (at your option) any later version.
@@ -14,7 +17,6 @@
 //
 // You should have received a copy of the GNU Affero General Public License along
 // with PupNet. If not, see <https://www.gnu.org/licenses/>.
-// -----------------------------------------------------------------------------
 
 using System.Text;
 
@@ -40,6 +42,7 @@ public sealed class DebianBuilder : PackageBuilder
         InstallBin = $"/opt/{Configuration.AppId}";
 
         // We do not set the content here
+        // We do not GPG sign deb files (not standard practice)
         ManifestBuildPath = Path.Combine(BuildRoot, "DEBIAN/control");
 
         var list = new List<string>();
@@ -50,9 +53,10 @@ public sealed class DebianBuilder : PackageBuilder
             cmd += "--verbose ";
         }
 
-        var archiveDirectory = Path.Combine(OutputDirectory, OutputName);
-        cmd += $"--build \"{BuildRoot}\" \"{archiveDirectory}\"";
+        var output = Path.Combine(OutputDirectory, OutputName);
+        cmd += $"--build \"{BuildRoot}\" \"{output}\"";
         list.Add(cmd);
+
         PackageCommands = list;
     }
 
@@ -63,7 +67,7 @@ public sealed class DebianBuilder : PackageBuilder
     {
         get
         {
-            var output = Path.GetFileName(Configuration.Arguments.Output);
+            var output = Path.GetFileName(Arguments.Output);
 
             if (string.IsNullOrEmpty(output))
             {
@@ -180,7 +184,7 @@ public sealed class DebianBuilder : PackageBuilder
             Operations.CopyFile(Configuration.AppLicenseFile, dest, true);
         }
 
-        base.BuildPackage();
+        BuildPackage(true);
     }
 
     private static string ToSection(string? category)
@@ -264,4 +268,3 @@ public sealed class DebianBuilder : PackageBuilder
     }
 
 }
-

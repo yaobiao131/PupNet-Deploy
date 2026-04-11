@@ -1,9 +1,12 @@
 // -----------------------------------------------------------------------------
-// PROJECT   : PupNet
-// COPYRIGHT : Andy Thomas (C) 2022-25
-// LICENSE   : GPL-3.0-or-later
-// HOMEPAGE  : https://github.com/kuiperzone/PupNet
-//
+// SPDX-FileNotice: PupNet Deploy
+// SPDX-License-Identifier: GPL-3.0-or-later
+// SPDX-FileCopyrightText: © 2022-2026 Andrew Thomas <kuiperzone@users.noreply.github.com>
+// SPDX-ProjectHomePage: https://github.com/kuiperzone/PupNet
+// SPDX-FileType: Source
+// SPDX-FileComment: This is NOT AI generated source code but was created with human thinking.
+// -----------------------------------------------------------------------------
+
 // PupNet is free software: you can redistribute it and/or modify it under
 // the terms of the GNU Affero General Public License as published by the Free Software
 // Foundation, either version 3 of the License, or (at your option) any later version.
@@ -14,7 +17,6 @@
 //
 // You should have received a copy of the GNU Affero General Public License along
 // with PupNet. If not, see <https://www.gnu.org/licenses/>.
-// -----------------------------------------------------------------------------
 
 using System.Text;
 
@@ -24,7 +26,7 @@ namespace KuiperZone.PupNet.Builders;
 /// Extends <see cref="PackageBuilder"/> for Windows Setup package.
 /// Leverages InnoSetup. Application installed into user space.
 /// </summary>
-public class SetupBuilder : PackageBuilder
+public sealed class SetupBuilder : PackageBuilder
 {
     private const string PromptBat = "CommandPrompt.bat";
 
@@ -40,7 +42,6 @@ public class SetupBuilder : PackageBuilder
         InstallBin = "";
 
         ManifestBuildPath = Path.Combine(Root, Configuration.AppBaseName + ".iss");
-        ManifestContent = GetInnoFile();
 
         var list = new List<string>();
         list.Add($"iscc /O\"{OutputDirectory}\" \"{ManifestBuildPath}\"");
@@ -96,7 +97,10 @@ public class SetupBuilder : PackageBuilder
     /// <summary>
     /// Implements.
     /// </summary>
-    public override string? ManifestContent { get; }
+    public override string? ManifestContent
+    {
+        get { return GetInnoFile(); }
+    }
 
     /// <summary>
     /// Implements.
@@ -142,6 +146,14 @@ public class SetupBuilder : PackageBuilder
         }
     }
 
+    /// <summary>
+    /// Overrides and extends.
+    /// </summary>
+    public override void BuildPackage()
+    {
+        BuildPackage(true);
+    }
+
     private static string? EscapeBat(string? s)
     {
         // \ & | > < ^
@@ -158,10 +170,20 @@ public class SetupBuilder : PackageBuilder
         return s;
     }
 
+    private static bool ContainsDlls(string? directory)
+    {
+        if (!Directory.Exists(directory))
+        {
+            return false;
+        }
+
+        return Directory.GetFiles(directory, "*.dll").Length > 0;
+    }
+
     private string GetInnoFile()
     {
         // We don't actually need install, build sections.
-        var sb = new StringBuilder();
+        var sb = new StringBuilder(256);
 
         sb.AppendLine($"[Setup]");
         sb.AppendLine($"AppName={Configuration.AppFriendlyName}");
@@ -177,11 +199,15 @@ public class SetupBuilder : PackageBuilder
         sb.AppendLine($"InfoBeforeFile={Configuration.AppChangeFile}");
         sb.AppendLine($"LicenseFile={Configuration.AppLicenseFile}");
         sb.AppendLine($"SetupIconFile={PrimaryIcon}");
-        sb.AppendLine($"AllowNoIcons=yes");
+        sb.AppendLine("AllowNoIcons=yes");
         sb.AppendLine($"MinVersion={Configuration.SetupMinWindowsVersion}");
 
         sb.AppendLine($"DefaultDirName={{autopf}}\\{Configuration.SetupGroupName ?? Configuration.AppBaseName}");
         sb.AppendLine($"DefaultGroupName={Configuration.SetupGroupName ?? Configuration.AppFriendlyName}");
+
+        // Languages
+        sb.AppendLine("ShowLanguageDialog=auto"); // auto, or yes
+        sb.AppendLine("LanguageDetectionMethod=uilanguage");
 
         if (PackageArch == "x64" || PackageArch == "arm64")
         {
@@ -206,10 +232,41 @@ public class SetupBuilder : PackageBuilder
             sb.AppendLine($"SignTool={Configuration.SetupSignTool}");
         }
 
+
+        sb.AppendLine();
+        sb.AppendLine("[Languages]");
+        sb.AppendLine("Name: \"english\"; MessagesFile: \"compiler:Default.isl\"");
+
+        sb.AppendLine("Name: \"arabic\"; MessagesFile: \"compiler:Languages\\Arabic.isl\"");
+        sb.AppendLine("Name: \"brazilianportuguese\"; MessagesFile: \"compiler:Languages\\BrazilianPortuguese.isl\"");
+        sb.AppendLine("Name: \"catalan\"; MessagesFile: \"compiler:Languages\\Catalan.isl\"");
+        sb.AppendLine("Name: \"danish\"; MessagesFile: \"compiler:Languages\\Danish.isl\"");
+        sb.AppendLine("Name: \"german\"; MessagesFile: \"compiler:Languages\\German.isl\"");
+        sb.AppendLine("Name: \"finnish\"; MessagesFile: \"compiler:Languages\\Finnish.isl\"");
+        sb.AppendLine("Name: \"french\"; MessagesFile: \"compiler:Languages\\French.isl\"");
+        sb.AppendLine("Name: \"hebrew\"; MessagesFile: \"compiler:Languages\\Hebrew.isl\"");
+        sb.AppendLine("Name: \"italian\"; MessagesFile: \"compiler:Languages\\Italian.isl\"");
+        sb.AppendLine("Name: \"japanese\"; MessagesFile: \"compiler:Languages\\Japanese.isl\"");
+        sb.AppendLine("Name: \"dutch\"; MessagesFile: \"compiler:Languages\\Dutch.isl\"");
+        sb.AppendLine("Name: \"portuguese\"; MessagesFile: \"compiler:Languages\\Portuguese.isl\"");
+        sb.AppendLine("Name: \"russian\"; MessagesFile: \"compiler:Languages\\Russian.isl\"");
+        sb.AppendLine("Name: \"slovak\"; MessagesFile: \"compiler:Languages\\Slovak.isl\"");
+        sb.AppendLine("Name: \"slovenian\"; MessagesFile: \"compiler:Languages\\Slovenian.isl\"");
+        sb.AppendLine("Name: \"spanish\"; MessagesFile: \"compiler:Languages\\Spanish.isl\"");
+        sb.AppendLine("Name: \"swedish\"; MessagesFile: \"compiler:Languages\\Swedish.isl\"");
+        sb.AppendLine("Name: \"tamil\"; MessagesFile: \"compiler:Languages\\Tamil.isl\"");
+        sb.AppendLine("Name: \"thai\"; MessagesFile: \"compiler:Languages\\Thai.isl\"");
+        sb.AppendLine("Name: \"turkish\"; MessagesFile: \"compiler:Languages\\Turkish.isl\"");
+
         sb.AppendLine();
         sb.AppendLine($"[Files]");
         sb.AppendLine($"Source: \"{BuildAppBin}\\*.exe\"; DestDir: \"{{app}}\"; Flags: ignoreversion recursesubdirs createallsubdirs signonce;");
-        sb.AppendLine($"Source: \"{BuildAppBin}\\*.dll\"; DestDir: \"{{app}}\"; Flags: ignoreversion recursesubdirs createallsubdirs signonce;");
+
+        if (ContainsDlls(BuildAppBin))
+        {
+            sb.AppendLine($"Source: \"{BuildAppBin}\\*.dll\"; DestDir: \"{{app}}\"; Flags: ignoreversion recursesubdirs createallsubdirs signonce;");
+        }
+
         sb.AppendLine($"Source: \"{BuildAppBin}\\*\"; Excludes: \"*.exe,*.dll\"; DestDir: \"{{app}}\"; Flags: ignoreversion recursesubdirs createallsubdirs;");
 
         if (PrimaryIcon != null)
@@ -282,4 +339,3 @@ public class SetupBuilder : PackageBuilder
     }
 
 }
-

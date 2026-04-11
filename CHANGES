@@ -1,5 +1,24 @@
++ 1.10.0;2026-04-10
+- Tool published for .NET 10.0 LTS now with RollForward (note. 1.9.1 targets .NET 8.0).
+- Tested against InnoSetup 6.7.1
+- Enhancement: Added multiple supported languages to InnoSetup by default #40
+- Enhancement: Added "auto", "gz" to "--kind,-k" command arg. On Linux "auto" (or omitted), now defaults to tar.gz, on Windows defaults to zip.
+- Enhancement: Added option to skip version naming in zip/gz filenames #52
+- Enhancement: Added SHA-256 output at end of build.
+- BugFix: Error building InnoSetup on Windows when build contains no DLLs (PublishSingleFile). #41
+- BugFix: Flatpak icon maxsize is 512, not 1024. #45
+- BugFix: Fixed error transposing configuration PublisherId to metainfo.
+- Other: RpmRequires now defaults to: glibc, libgcc, ca-certificates, openssl-libs, libstdc++, libicu, tzdata, krb5-libs
+- Other: DebianRecommends now defaults to: libc6, libgcc-s1, libgssapi-krb5-2, libicu72, libssl3, libstdc++6, zlib1g
+- Other: Flatpak build no longer outputs binary artifacts as no use case for this.
+- Other: Configuration default update: FlatpakPlatformVersion = 25.08
+- Other: Deprecated "--run" command line argument. Possibly remove in future.
+- Other: Other minor changes.
+
+
 + 1.9.1; 2025-11-05
-- BugFix: RPM build failing to copy artifacts at end of build process.
+- BugFix: RPM build failing to copy artifacts at end of build process. #49
+
 
 + 1.9.0; 2025-07-05
 - BREAKING CHANGE: Embedded appimagetool removed in this release. Now requires appimagetool-x86_64.AppImage, appimagetool-aarch64.AppImage etc. to be in the $PATH.

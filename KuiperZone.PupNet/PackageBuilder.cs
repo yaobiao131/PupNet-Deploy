@@ -1,9 +1,12 @@
 // -----------------------------------------------------------------------------
-// PROJECT   : PupNet
-// COPYRIGHT : Andy Thomas (C) 2022-25
-// LICENSE   : GPL-3.0-or-later
-// HOMEPAGE  : https://github.com/kuiperzone/PupNet
-//
+// SPDX-FileNotice: PupNet Deploy
+// SPDX-License-Identifier: GPL-3.0-or-later
+// SPDX-FileCopyrightText: © 2022-2026 Andrew Thomas <kuiperzone@users.noreply.github.com>
+// SPDX-ProjectHomePage: https://github.com/kuiperzone/PupNet
+// SPDX-FileType: Source
+// SPDX-FileComment: This is NOT AI generated source code but was created with human thinking.
+// -----------------------------------------------------------------------------
+
 // PupNet is free software: you can redistribute it and/or modify it under
 // the terms of the GNU Affero General Public License as published by the Free Software
 // Foundation, either version 3 of the License, or (at your option) any later version.
@@ -14,10 +17,11 @@
 //
 // You should have received a copy of the GNU Affero General Public License along
 // with PupNet. If not, see <https://www.gnu.org/licenses/>.
-// -----------------------------------------------------------------------------
 
 using System.Reflection;
 using System.Runtime.InteropServices;
+using System.Security.Cryptography;
+using System.Text;
 
 namespace KuiperZone.PupNet;
 
@@ -49,9 +53,6 @@ public abstract class PackageBuilder
         Arguments = conf.Arguments;
         Configuration = conf;
         Runtime = new RuntimeConverter(Arguments.Runtime);
-        IsLinuxExclusive = Kind.TargetsLinux(true);
-        IsWindowsExclusive = Kind.TargetsWindows(true);
-        IsOsxExclusive = Kind.TargetsOsx(true);
 
         // Important - Architecture is tailored for third-party builder
         AppVersion = SplitVersion(conf.Arguments.VersionRelease ?? conf.AppVersionRelease, out string temp);
@@ -62,13 +63,13 @@ public abstract class PackageBuilder
         BuildRoot = Path.Combine(Root, AppRootName);
         Operations = new(Root);
 
-        IconPaths = GetShareIconPaths(Configuration.IconFiles);
+        IconPaths = GetShareIconPaths(kind, Configuration.IconFiles);
 
         if (IconPaths.Count == 0)
         {
             // Fallback to embedded icons on Linux
             // Should always empty on non-linux systems
-            IconPaths = GetShareIconPaths(Configuration.DesktopTerminal ? DefaultTerminalIcons : DefaultGuiIcons);
+            IconPaths = GetShareIconPaths(kind, Configuration.DesktopTerminal ? DefaultTerminalIcons : DefaultGuiIcons);
         }
 
         // Should be ico on Windows, or SVG or PNG on linux
@@ -155,21 +156,12 @@ public abstract class PackageBuilder
     public ICollection<string> WarningSink { get; } = new List<string>();
 
     /// <summary>
-    /// Gets whether output is for Linux exclusively. This will be true for AppImage, and
-    /// false for Zip and Setup.
+    /// Gets whether GPG signing.
     /// </summary>
-    public bool IsLinuxExclusive { get; }
-
-    /// <summary>
-    /// Gets whether output is for Windows exclusively. This will be true for Setup, and
-    /// false for Zip and AppImage.
-    /// </summary>
-    public bool IsWindowsExclusive { get; }
-
-    /// <summary>
-    /// Gets whether output is for OSX exclusively. Currently always false.
-    /// </summary>
-    public bool IsOsxExclusive { get; }
+    public bool IsGpgSigning
+    {
+        get { return Kind.CanGpgSign() && !string.IsNullOrEmpty(Configuration.PublisherGpgKeyId) && !Arguments.IsNoGpg; }
+    }
 
     /// <summary>
     /// Gets the application version. This is the configured version, excluding any Release suffix.
@@ -235,7 +227,7 @@ public abstract class PackageBuilder
     {
         get
         {
-            if (IsLinuxExclusive || IsOsxExclusive)
+            if (Kind.IsLinuxExclusive())
             {
                 // Note. We have the option in the future of using "{BuildRoot}/usr/local"
                 return $"{BuildRoot}/usr";
@@ -277,7 +269,7 @@ public abstract class PackageBuilder
     {
         get
         {
-            if (IsLinuxExclusive)
+            if (Kind.IsLinuxExclusive() && Kind != PackageKind.Gz)
             {
                 var usr = BuildUsr;
                 return usr != null ? $"{BuildUsr}/share/metainfo" : null;
@@ -294,7 +286,7 @@ public abstract class PackageBuilder
     {
         get
         {
-            if (IsLinuxExclusive)
+            if (Kind.IsLinuxExclusive() && Kind != PackageKind.Gz)
             {
                 var usr = BuildUsr;
                 return usr != null ? $"{BuildUsr}/share/applications" : null;
@@ -311,7 +303,7 @@ public abstract class PackageBuilder
     {
         get
         {
-            if (IsLinuxExclusive)
+            if (Kind.IsLinuxExclusive() && Kind != PackageKind.Gz)
             {
                 var usr = BuildUsr;
                 return usr != null ? $"{BuildUsr}/share/icons" : null;
@@ -483,7 +475,7 @@ public abstract class PackageBuilder
         // Calls do nothing if respective property is null or directory exists.
         Operations.CreateDirectory(Path.GetDirectoryName(ManifestBuildPath));
 
-        if (IsLinuxExclusive)
+        if (Kind.IsLinuxExclusive() && Kind != PackageKind.Gz)
         {
             Operations.WriteFile(DesktopBuildPath, desktop);
             Operations.WriteFile(MetaBuildPath, metainfo);
@@ -537,7 +529,17 @@ public abstract class PackageBuilder
     /// exists and calls <see cref="FileOps.Execute(string)"/> against each item in <see cref="PackageCommands"/>.
     /// It may be overridden to perform additional or other operations. It throws any Exception of failure.
     /// </summary>
-    public virtual void BuildPackage()
+    public abstract void BuildPackage();
+
+    /// <summary>
+    /// Overrides.
+    /// </summary>
+    public override string ToString()
+    {
+        return Root;
+    }
+
+    protected void BuildPackage(bool artifacts)
     {
         // Must exist
         var appPath = Path.Combine(BuildAppBin, AppExecName);
@@ -590,24 +592,27 @@ public abstract class PackageBuilder
         // BUILD
         Operations.Execute(PackageCommands);
 
-        CopyArtifacts();
+        if (artifacts)
+        {
+            BuildArtifacts();
+        }
     }
 
     /// <summary>
-    /// Overrides.
+    /// Builds artifacts to <see cref="OutputArtifactsDirectory"/>.
     /// </summary>
-    public override string ToString()
-    {
-        return Root;
-    }
-
-    /// <summary>
-    /// Copies artifacts to <see cref="OutputArtifactsDirectory"/>.
-    /// </summary>
-    protected virtual void CopyArtifacts()
+    protected virtual void BuildArtifacts()
     {
         try
         {
+            Console.WriteLine("OUTPUT PATH: " + OutputPath);
+
+            if (!string.IsNullOrEmpty(OutputPath))
+            {
+                // Output directory
+                File.WriteAllText(OutputPath + ".sha256.txt", FileOps.GetSha256(OutputPath));
+            }
+
             // Ensure empty
             Operations.RemoveDirectory(OutputArtifactsDirectory);
 
@@ -628,6 +633,17 @@ public abstract class PackageBuilder
                 var dest = Path.Combine(OutputArtifactsDirectory, Path.GetFileName(MetaBuildPath));
                 Operations.CopyFile(MetaBuildPath, dest, true);
             }
+
+            if (IsGpgSigning)
+            {
+                var dest = Path.Combine(OutputArtifactsDirectory, Path.GetFileName(Configuration.PublisherId)) + ".public-sign";
+
+                Operations.CreateDirectory(OutputArtifactsDirectory);
+                Operations.Execute("gpg", $"--export -a -o \"{dest}.asc\" {Configuration.PublisherGpgKeyId}");
+
+                File.WriteAllText(dest + ".id", Configuration.PublisherGpgKeyId);
+            }
+
         }
         catch (Exception e)
         {
@@ -640,11 +656,11 @@ public abstract class PackageBuilder
 
     /// <summary>
     /// Accessible by subclass. Derives "standard" output name. Ext to include leading ".".
-    /// Returns Configuration.Arguments.Output if not null.
+    /// Returns Arguments.Output if not null.
     /// </summary>
     protected string GetOutputName(bool version, string? suffix, string arch, string ext)
     {
-        var output = Configuration.Arguments.Output;
+        var output = Arguments.Output;
         var name = Path.GetFileName(output);
 
         if (!string.IsNullOrEmpty(name) && !Directory.Exists(output))
@@ -776,13 +792,13 @@ public abstract class PackageBuilder
         {
             var ext = Path.GetExtension(item).ToLowerInvariant();
 
-            if (kind.TargetsWindows() && ext == ".ico")
+            if (kind.CanTargetWindows() && ext == ".ico")
             {
                 // Only need this
                 return item;
             }
 
-            if (!kind.TargetsWindows())
+            if (kind.CanTargetLinux())
             {
                 // For non-windows
                 if (ext == ".svg")
@@ -811,7 +827,7 @@ public abstract class PackageBuilder
         return rslt;
     }
 
-    private string? MapSourceIconToSharePath(string sourcePath)
+    private string? MapSourceIconToSharePath(PackageKind kind, string sourcePath)
     {
         if (BuildShareIcons != null)
         {
@@ -826,6 +842,11 @@ public abstract class PackageBuilder
 
             if (size > 0)
             {
+                if (kind == PackageKind.Flatpak && size > 512)
+                {
+                    return null;
+                }
+
                 return Path.Combine(BuildShareIcons, "hicolor", $"{size}x{size}", "apps", Configuration.AppId) + ".png";
             }
         }
@@ -833,7 +854,7 @@ public abstract class PackageBuilder
         return null;
     }
 
-    private Dictionary<string, string> GetShareIconPaths(IReadOnlyCollection<string> sources)
+    private Dictionary<string, string> GetShareIconPaths(PackageKind kind, IReadOnlyCollection<string> sources)
     {
         // Empty on windows
         var dict = new Dictionary<string, string>();
@@ -842,7 +863,7 @@ public abstract class PackageBuilder
         {
             foreach (var item in sources)
             {
-                var dest = MapSourceIconToSharePath(item);
+                var dest = MapSourceIconToSharePath(kind, item);
 
                 if (dest != null)
                 {

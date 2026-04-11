@@ -1,6 +1,6 @@
 ﻿// -----------------------------------------------------------------------------
 // PROJECT   : Avant Garde
-// COPYRIGHT : Andy Thomas (C) 2022-25
+// COPYRIGHT : Andy Thomas (C) 2022-26
 // LICENSE   : GPL-3.0-or-later
 // HOMEPAGE  : https://github.com/kuiperzone/AvantGarde
 //

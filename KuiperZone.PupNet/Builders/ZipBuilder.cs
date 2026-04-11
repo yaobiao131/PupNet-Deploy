@@ -1,9 +1,12 @@
 // -----------------------------------------------------------------------------
-// PROJECT   : PupNet
-// COPYRIGHT : Andy Thomas (C) 2022-25
-// LICENSE   : GPL-3.0-or-later
-// HOMEPAGE  : https://github.com/kuiperzone/PupNet
-//
+// SPDX-FileNotice: PupNet Deploy
+// SPDX-License-Identifier: GPL-3.0-or-later
+// SPDX-FileCopyrightText: © 2022-2026 Andrew Thomas <kuiperzone@users.noreply.github.com>
+// SPDX-ProjectHomePage: https://github.com/kuiperzone/PupNet
+// SPDX-FileType: Source
+// SPDX-FileComment: This is NOT AI generated source code but was created with human thinking.
+// -----------------------------------------------------------------------------
+
 // PupNet is free software: you can redistribute it and/or modify it under
 // the terms of the GNU Affero General Public License as published by the Free Software
 // Foundation, either version 3 of the License, or (at your option) any later version.
@@ -14,21 +17,25 @@
 //
 // You should have received a copy of the GNU Affero General Public License along
 // with PupNet. If not, see <https://www.gnu.org/licenses/>.
-// -----------------------------------------------------------------------------
 
 namespace KuiperZone.PupNet.Builders;
 
 /// <summary>
 /// Extends <see cref="PackageBuilder"/> for Zip package.
 /// </summary>
-public class ZipBuilder : PackageBuilder
+public sealed class ZipBuilder : PackageBuilder
 {
     /// <summary>
     /// Constructor.
     /// </summary>
     public ZipBuilder(ConfigurationReader conf)
-        : base(conf, PackageKind.Zip)
+        : base(conf, conf.Arguments.Kind)
     {
+        if (Kind != PackageKind.Zip && Kind != PackageKind.Gz)
+        {
+            throw new ArgumentException($"Invalid package kind {Kind}", nameof(conf));
+        }
+
         BuildAppBin = Path.Combine(BuildRoot, "Publish");
 
         // Not used
@@ -61,7 +68,11 @@ public class ZipBuilder : PackageBuilder
     /// </summary>
     public override string OutputName
     {
-        get { return GetOutputName(true, Runtime.RuntimeId, ".zip"); }
+        get
+        {
+            var ext = Kind == PackageKind.Zip ? ".zip" : ".tar.gz";
+            return GetOutputName(Configuration.ZipVersionOutput, Runtime.RuntimeId, ext);
+        }
     }
 
     /// <summary>
@@ -104,10 +115,18 @@ public class ZipBuilder : PackageBuilder
     /// </summary>
     public override void BuildPackage()
     {
-        // Package commands empty - does nothing
-        base.BuildPackage();
+        BuildPackage(false);
 
-        Operations.Zip(BuildAppBin, OutputPath);
+        if (Kind == PackageKind.Gz)
+        {
+            Operations.TarGz(BuildAppBin, OutputPath);
+        }
+        else
+        {
+            Operations.Zip(BuildAppBin, OutputPath);
+        }
+
+        BuildArtifacts();
 
         if (Arguments.IsRun)
         {
@@ -118,4 +137,3 @@ public class ZipBuilder : PackageBuilder
     }
 
 }
-

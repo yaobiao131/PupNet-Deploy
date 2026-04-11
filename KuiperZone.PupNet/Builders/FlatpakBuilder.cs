@@ -1,9 +1,12 @@
 // -----------------------------------------------------------------------------
-// PROJECT   : PupNet
-// COPYRIGHT : Andy Thomas (C) 2022-25
-// LICENSE   : GPL-3.0-or-later
-// HOMEPAGE  : https://github.com/kuiperzone/PupNet
-//
+// SPDX-FileNotice: PupNet Deploy
+// SPDX-License-Identifier: GPL-3.0-or-later
+// SPDX-FileCopyrightText: © 2022-2026 Andrew Thomas <kuiperzone@users.noreply.github.com>
+// SPDX-ProjectHomePage: https://github.com/kuiperzone/PupNet
+// SPDX-FileType: Source
+// SPDX-FileComment: This is NOT AI generated source code but was created with human thinking.
+// -----------------------------------------------------------------------------
+
 // PupNet is free software: you can redistribute it and/or modify it under
 // the terms of the GNU Affero General Public License as published by the Free Software
 // Foundation, either version 3 of the License, or (at your option) any later version.
@@ -14,7 +17,6 @@
 //
 // You should have received a copy of the GNU Affero General Public License along
 // with PupNet. If not, see <https://www.gnu.org/licenses/>.
-// -----------------------------------------------------------------------------
 
 using System.Text;
 
@@ -23,7 +25,7 @@ namespace KuiperZone.PupNet.Builders;
 /// <summary>
 /// Extends <see cref="PackageBuilder"/> for Flatpak package.
 /// </summary>
-public class FlatpakBuilder : PackageBuilder
+public sealed class FlatpakBuilder : PackageBuilder
 {
     /// <summary>
     /// Constructor.
@@ -43,24 +45,31 @@ public class FlatpakBuilder : PackageBuilder
         var state = Path.Combine(Root, "state");
         var repo = Path.Combine(Root, "repo");
 
+        var list = new List<string>();
         var cmd = $"flatpak-builder {Configuration.FlatpakBuilderArgs}";
 
         if (Arguments.Arch != null)
         {
             // Explicit only (otherwise leave it to utility to determine)
-            cmd += $" --arch ${Arguments.Arch}";
+            cmd += $" --arch=${Arguments.Arch}";
+        }
+
+        if (IsGpgSigning)
+        {
+            cmd += $" --gpg-sign={Configuration.PublisherGpgKeyId}";
         }
 
         cmd += $" --repo=\"{repo}\" --force-clean \"{temp}\" --state-dir \"{state}\" \"{ManifestBuildPath}\"";
-
-        var list = new List<string>();
-
         list.Add(cmd);
-        list.Add($"flatpak build-bundle \"{repo}\" \"{OutputPath}\" {Configuration.AppId}");
+
+
+        cmd = $"flatpak build-bundle \"{repo}\" \"{OutputPath}\" {Configuration.AppId}";
+        list.Add(cmd);
 
         if (Arguments.IsRun)
         {
-            list.Add($"flatpak-builder --run \"{temp}\" \"{ManifestBuildPath}\" {Configuration.AppBaseName} --state-dir \"{state}\"");
+            cmd = $"flatpak-builder --run \"{temp}\" \"{ManifestBuildPath}\" {Configuration.AppBaseName} --state-dir \"{state}\"";
+            list.Add(cmd);
         }
 
         PackageCommands = list;
@@ -140,26 +149,12 @@ public class FlatpakBuilder : PackageBuilder
     /// </summary>
     public override bool SupportsPostRun { get; } = true;
 
-    protected override void CopyArtifacts()
+    /// <summary>
+    /// Overrides and extends.
+    /// </summary>
+    public override void BuildPackage()
     {
-        if (ManifestBuildPath != null)
-        {
-            // Ensure empty
-            Operations.RemoveDirectory(OutputArtifactsDirectory);
-
-            // Copy manifest - ensures output directory exists
-            var dest = Path.Combine(OutputArtifactsDirectory, Path.GetFileName(ManifestBuildPath));
-            Operations.CopyFile(ManifestBuildPath, dest, true);
-
-            // Write flathub file
-            string flathub = $"{{\n\"only-arches\": [\"{PackageArch}\"]\n}}";
-            Operations.WriteFile(Path.Combine(OutputArtifactsDirectory, "flathub.json"), flathub, true);
-
-            // Copy
-            dest = Path.Combine(OutputArtifactsDirectory, AppRootName);
-            Operations.CreateDirectory(dest);
-            Operations.CopyDirectory(BuildRoot, dest);
-        }
+        BuildPackage(true);
     }
 
     private string GetFlatpakManifest()
@@ -199,4 +194,3 @@ public class FlatpakBuilder : PackageBuilder
     }
 
 }
-

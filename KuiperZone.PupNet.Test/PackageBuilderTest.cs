@@ -1,9 +1,12 @@
 // -----------------------------------------------------------------------------
-// PROJECT   : PupNet
-// COPYRIGHT : Andy Thomas (C) 2022-25
-// LICENSE   : GPL-3.0-or-later
-// HOMEPAGE  : https://github.com/kuiperzone/PupNet
-//
+// SPDX-FileNotice: PupNet Deploy
+// SPDX-License-Identifier: GPL-3.0-or-later
+// SPDX-FileCopyrightText: © 2022-2026 Andrew Thomas <kuiperzone@users.noreply.github.com>
+// SPDX-ProjectHomePage: https://github.com/kuiperzone/PupNet
+// SPDX-FileType: Source
+// SPDX-FileComment: This is NOT AI generated source code but was created with human thinking.
+// -----------------------------------------------------------------------------
+
 // PupNet is free software: you can redistribute it and/or modify it under
 // the terms of the GNU Affero General Public License as published by the Free Software
 // Foundation, either version 3 of the License, or (at your option) any later version.
@@ -14,7 +17,6 @@
 //
 // You should have received a copy of the GNU Affero General Public License along
 // with PupNet. If not, see <https://www.gnu.org/licenses/>.
-// -----------------------------------------------------------------------------
 
 using KuiperZone.PupNet.Builders;
 using Xunit;
@@ -46,9 +48,7 @@ public class PackageBuilderTest
     {
         var builder = new AppImageBuilder(new DummyConf());
 
-        Assert.True(builder.IsLinuxExclusive);
         AssertOK(builder, PackageKind.AppImage);
-        Assert.False(builder.IsWindowsExclusive);
         Assert.EndsWith("usr/share/metainfo/com.example.helloworld.appdata.xml", builder.MetaBuildPath);
 
         // Skip arch - depends on test system -- covered in other tests
@@ -61,9 +61,7 @@ public class PackageBuilderTest
     {
         var builder = new FlatpakBuilder(new DummyConf());
 
-        Assert.True(builder.IsLinuxExclusive);
         AssertOK(builder, PackageKind.Flatpak);
-        Assert.False(builder.IsWindowsExclusive);
         Assert.EndsWith("usr/share/metainfo/com.example.helloworld.metainfo.xml", builder.MetaBuildPath);
         Assert.EndsWith("com.example.helloworld-linux-x64-Release-Flatpak/com.example.helloworld.yml", builder.ManifestBuildPath);
 
@@ -76,9 +74,7 @@ public class PackageBuilderTest
     {
         var builder = new RpmBuilder(new DummyConf());
 
-        Assert.True(builder.IsLinuxExclusive);
         AssertOK(builder, PackageKind.Rpm);
-        Assert.False(builder.IsWindowsExclusive);
         Assert.EndsWith("usr/share/metainfo/com.example.helloworld.metainfo.xml", builder.MetaBuildPath);
         Assert.EndsWith("com.example.helloworld-linux-x64-Release-Rpm/com.example.helloworld.spec", builder.ManifestBuildPath);
 
@@ -91,8 +87,6 @@ public class PackageBuilderTest
     {
         var builder = new DebianBuilder(new DummyConf());
 
-        Assert.True(builder.IsLinuxExclusive);
-        Assert.False(builder.IsWindowsExclusive);
         AssertOK(builder, PackageKind.Deb);
         Assert.EndsWith("usr/share/metainfo/com.example.helloworld.metainfo.xml", builder.MetaBuildPath);
         Assert.EndsWith("nux-x64-Release-Deb/AppDir/DEBIAN/control", builder.ManifestBuildPath);
@@ -106,8 +100,6 @@ public class PackageBuilderTest
     {
         var builder = new SetupBuilder(new DummyConf());
 
-        Assert.False(builder.IsLinuxExclusive);
-        Assert.True(builder.IsWindowsExclusive);
         AssertOK(builder, PackageKind.Setup);
         Assert.Null(builder.MetaBuildPath);
 
@@ -118,7 +110,7 @@ public class PackageBuilderTest
     [Fact]
     public void Zip_DecodesOK()
     {
-        var builder = new ZipBuilder(new DummyConf());
+        var builder = new ZipBuilder(new DummyConf(PackageKind.Zip, nameof(ConfigurationReader.ZipVersionOutput)));
         AssertOK(builder, PackageKind.Zip);
         Assert.Null(builder.MetaBuildPath);
 
@@ -126,10 +118,21 @@ public class PackageBuilderTest
         Assert.EndsWith(".zip", builder.OutputName);
     }
 
+    [Fact]
+    public void Gz_DecodesOK()
+    {
+        var builder = new ZipBuilder(new DummyConf(PackageKind.Gz, nameof(ConfigurationReader.ZipVersionOutput)));
+        AssertOK(builder, PackageKind.Gz);
+        Assert.Null(builder.MetaBuildPath);
+
+        Assert.StartsWith("HelloWorld-5.4.3-2.", builder.OutputName);
+        Assert.EndsWith(".tar.gz", builder.OutputName);
+    }
+
     private static void AssertOK(PackageBuilder builder, PackageKind kind)
     {
         Assert.Equal(kind, builder.Kind);
-        Assert.Equal(kind.TargetsWindows(), !builder.IsLinuxExclusive);
+        Assert.Equal(kind.CanTargetWindows(), !builder.Kind.IsLinuxExclusive());
 
         var appExecName = builder.Runtime.IsWindowsRuntime ? "HelloWorld.exe" : "HelloWorld";
         Assert.Equal(appExecName, builder.AppExecName);
@@ -139,7 +142,7 @@ public class PackageBuilderTest
         // Not fully qualified as no assert files
         Assert.Equal("Deploy", builder.OutputDirectory);
 
-        if (builder.IsLinuxExclusive)
+        if (builder.Kind.IsLinuxExclusive() && kind != PackageKind.Gz)
         {
             Assert.EndsWith($"usr/bin", builder.BuildUsrBin);
             Assert.EndsWith($"usr/share", builder.BuildUsrShare);
@@ -161,7 +164,7 @@ public class PackageBuilderTest
             Assert.DoesNotContain($"Assets/Icon.ico", builder.IconPaths.Keys);
         }
         else
-        if (builder.IsWindowsExclusive)
+        if (builder.Kind.IsWindowsExclusive())
         {
             Assert.Null(builder.BuildUsrBin);
             Assert.Null(builder.BuildUsrShare);
@@ -177,7 +180,7 @@ public class PackageBuilderTest
             Assert.Empty(builder.IconPaths);
         }
         else
-        if (builder.IsOsxExclusive)
+        if (builder.Kind.IsOsxExclusive())
         {
             // Currently unknown
             Assert.EndsWith($"usr/bin", builder.BuildUsrBin);

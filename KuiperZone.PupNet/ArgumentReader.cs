@@ -1,9 +1,12 @@
 // -----------------------------------------------------------------------------
-// PROJECT   : PupNet
-// COPYRIGHT : Andy Thomas (C) 2022-25
-// LICENSE   : GPL-3.0-or-later
-// HOMEPAGE  : https://github.com/kuiperzone/PupNet
-//
+// SPDX-FileNotice: PupNet Deploy
+// SPDX-License-Identifier: GPL-3.0-or-later
+// SPDX-FileCopyrightText: © 2022-2026 Andrew Thomas <kuiperzone@users.noreply.github.com>
+// SPDX-ProjectHomePage: https://github.com/kuiperzone/PupNet
+// SPDX-FileType: Source
+// SPDX-FileComment: This is NOT AI generated source code but was created with human thinking.
+// -----------------------------------------------------------------------------
+
 // PupNet is free software: you can redistribute it and/or modify it under
 // the terms of the GNU Affero General Public License as published by the Free Software
 // Foundation, either version 3 of the License, or (at your option) any later version.
@@ -14,7 +17,6 @@
 //
 // You should have received a copy of the GNU Affero General Public License along
 // with PupNet. If not, see <https://www.gnu.org/licenses/>.
-// -----------------------------------------------------------------------------
 
 using System.Text;
 
@@ -58,6 +60,8 @@ public class ArgumentReader
 
     public const char SkipYesShortArg = 'y';
     public const string SkipYesLongArg = "skip-yes";
+
+    public const string NoGpgLongArg = "no-gpg";
 
     public const char NewShortArg = 'n';
     public const string NewLongArg = "new";
@@ -123,11 +127,18 @@ public class ArgumentReader
         IsVerbose = args.GetOrDefault(VerboseLongArg, false);
         IsUpgradeConf = args.GetOrDefault(UpgradeConfLongArg, false);
         IsSkipYes = args.GetOrDefault(SkipYesShortArg, SkipYesLongArg, false) || GetEnvironmentFlag("CI");
+        IsNoGpg = args.GetOrDefault(NoGpgLongArg, false);
 
         if (NewFile == null)
         {
+            var rtc = new RuntimeConverter(Runtime);
             Kind = AssertEnum<PackageKind>(KindShortArg, KindLongArg,
-                args.GetOrDefault(KindShortArg, KindLongArg, new RuntimeConverter(Runtime).DefaultPackage.ToString()));
+                args.GetOrDefault(KindShortArg, KindLongArg, rtc.DefaultPackage.ToString()));
+
+            if (Kind == PackageKind.Auto)
+            {
+                Kind = rtc.IsWindowsRuntime ? PackageKind.Zip : PackageKind.Gz;
+            }
 
             Property = args.GetOrDefault(PropertyShortArg, PropertyLongArg, null);
             Output = args.GetOrDefault(OutputShortArg, OutputLongArg, null);
@@ -220,6 +231,11 @@ public class ArgumentReader
     public bool IsSkipYes { get; }
 
     /// <summary>
+    /// Skips any GPG signing.
+    /// </summary>
+    public bool IsNoGpg { get; }
+
+    /// <summary>
     /// Gets whether to show version only.
     /// </summary>
     public bool ShowVersion { get; }
@@ -250,7 +266,7 @@ public class ArgumentReader
         sb.AppendLine("Build Options:");
 
         sb.AppendLine($"{indent}-{KindShortArg}, --{KindLongArg} <{string.Join('|', Enum.GetNames<PackageKind>()).ToLowerInvariant()}>");
-        sb.AppendLine($"{indent}Package output kind. If omitted, one is chosen according to the runtime ({PackageKind.AppImage} on linux).");
+        sb.AppendLine($"{indent}Package output kind. If {PackageKind.Auto} or omitted, output is a simple tar.gz file on Linux, or zip on Windows.");
         sb.AppendLine($"{indent}Example: {Program.CommandName} HelloWorld -{KindShortArg} {PackageKind.Flatpak}");
         sb.AppendLine();
         sb.AppendLine($"{indent}-{RidShortArg}, --{RidLongArg} <linux-x64|linux-arm64|win-x64...>");
@@ -293,10 +309,14 @@ public class ArgumentReader
         sb.AppendLine($"{indent}Indicates verbose output when building. It is used also with --{NewLongArg} option.");
         sb.AppendLine();
         sb.AppendLine($"{indent}-{RunShortArg}, --{RunLongArg}");
-        sb.AppendLine($"{indent}Performs a test run of the application after successful build (where supported).");
+        sb.AppendLine($"{indent}DEPRECATED: Performs a test run of the application after successful build (where supported).");
         sb.AppendLine();
         sb.AppendLine($"{indent}-{SkipYesShortArg}, --{SkipYesLongArg}");
         sb.AppendLine($"{indent}Skips confirmation prompts (assumes yes).");
+        sb.AppendLine();
+        sb.AppendLine($"{indent}--{NoGpgLongArg}");
+        sb.AppendLine($"{indent}Do not GPG sign installation even if {nameof(ConfigurationReader.PublisherGpgKeyId)} is provided.");
+        sb.AppendLine($"{indent}It has no effect where {nameof(ConfigurationReader.PublisherGpgKeyId)} is blank.");
 
         sb.AppendLine();
         sb.AppendLine("Other Options:");

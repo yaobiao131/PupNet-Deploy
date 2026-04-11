@@ -1,9 +1,12 @@
 // -----------------------------------------------------------------------------
-// PROJECT   : PupNet
-// COPYRIGHT : Andy Thomas (C) 2022-25
-// LICENSE   : GPL-3.0-or-later
-// HOMEPAGE  : https://github.com/kuiperzone/PupNet
-//
+// SPDX-FileNotice: PupNet Deploy
+// SPDX-License-Identifier: GPL-3.0-or-later
+// SPDX-FileCopyrightText: © 2022-2026 Andrew Thomas <kuiperzone@users.noreply.github.com>
+// SPDX-ProjectHomePage: https://github.com/kuiperzone/PupNet
+// SPDX-FileType: Source
+// SPDX-FileComment: This is NOT AI generated source code but was created with human thinking.
+// -----------------------------------------------------------------------------
+
 // PupNet is free software: you can redistribute it and/or modify it under
 // the terms of the GNU Affero General Public License as published by the Free Software
 // Foundation, either version 3 of the License, or (at your option) any later version.
@@ -14,7 +17,6 @@
 //
 // You should have received a copy of the GNU Affero General Public License along
 // with PupNet. If not, see <https://www.gnu.org/licenses/>.
-// -----------------------------------------------------------------------------
 
 using Xunit;
 
@@ -124,6 +126,13 @@ public class ConfigurationReaderTest
     {
         Assert.Equal("email@example.com", Create().PublisherEmail);
         Assert.Null(Create(nameof(ConfigurationReader.PublisherEmail)).PublisherEmail);
+    }
+
+    [Fact]
+    public void PublisherGpgKeyFinger_Optional_DecodeOK()
+    {
+        Assert.NotNull(Create().PublisherGpgKeyId);
+        Assert.Null(Create(nameof(ConfigurationReader.PublisherGpgKeyId)).PublisherGpgKeyId);
     }
 
     [Fact]
@@ -266,7 +275,6 @@ public class ConfigurationReaderTest
         Assert.Null(Create(nameof(ConfigurationReader.FlatpakBuilderArgs)).FlatpakBuilderArgs);
     }
 
-
     [Fact]
     public void RpmAutoReq_Bool_IsTrue()
     {
@@ -304,7 +312,7 @@ public class ConfigurationReaderTest
         Assert.Contains("deb-depends2", args);
 
         args = Create(nameof(ConfigurationReader.DebianRecommends)).DebianRecommends;
-        Assert.Contains("libicu70", args);
+        Assert.Contains("libicu72", args);
     }
 
     [Fact]
@@ -347,6 +355,13 @@ public class ConfigurationReaderTest
     {
         Assert.True(Create().SetupVersionOutput);
         Assert.False(Create(nameof(ConfigurationReader.SetupVersionOutput)).SetupVersionOutput);
+    }
+
+    [Fact]
+    public void ZipVersionOutput_Bool_IsFalse()
+    {
+        Assert.False(Create().ZipVersionOutput);
+        Assert.True(Create(nameof(ConfigurationReader.ZipVersionOutput)).ZipVersionOutput);
     }
 
     [Fact]

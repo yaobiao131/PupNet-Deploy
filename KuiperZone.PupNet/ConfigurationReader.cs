@@ -1,9 +1,12 @@
 // -----------------------------------------------------------------------------
-// PROJECT   : PupNet
-// COPYRIGHT : Andy Thomas (C) 2022-25
-// LICENSE   : GPL-3.0-or-later
-// HOMEPAGE  : https://github.com/kuiperzone/PupNet
-//
+// SPDX-FileNotice: PupNet Deploy
+// SPDX-License-Identifier: GPL-3.0-or-later
+// SPDX-FileCopyrightText: © 2022-2026 Andrew Thomas <kuiperzone@users.noreply.github.com>
+// SPDX-ProjectHomePage: https://github.com/kuiperzone/PupNet
+// SPDX-FileType: Source
+// SPDX-FileComment: This is NOT AI generated source code but was created with human thinking.
+// -----------------------------------------------------------------------------
+
 // PupNet is free software: you can redistribute it and/or modify it under
 // the terms of the GNU Affero General Public License as published by the Free Software
 // Foundation, either version 3 of the License, or (at your option) any later version.
@@ -14,7 +17,6 @@
 //
 // You should have received a copy of the GNU Affero General Public License along
 // with PupNet. If not, see <https://www.gnu.org/licenses/>.
-// -----------------------------------------------------------------------------
 
 using System.Runtime.InteropServices;
 using System.Text;
@@ -67,6 +69,7 @@ public class ConfigurationReader
             PublisherLinkName = "Project Page";
             PublisherLinkUrl = "https://example.com";
             PublisherEmail = "contact@example.com";
+            PublisherGpgKeyId = "F4328AF0D7EF0D7EF0D7EE2170F0D7E2A";
             DesktopFile = "Deploy/app.desktop";
             PrimeCategory = "Utility";
             StartCommand = "helloworld";
@@ -142,6 +145,7 @@ public class ConfigurationReader
         PublisherLinkName = GetOptional(nameof(PublisherLinkName), ValueFlags.Safe);
         PublisherLinkUrl = GetOptional(nameof(PublisherLinkUrl), ValueFlags.Safe);
         PublisherEmail = GetOptional(nameof(PublisherEmail), ValueFlags.None);
+        PublisherGpgKeyId = GetOptional(nameof(PublisherGpgKeyId), ValueFlags.StrictSafe);
 
         DesktopNoDisplay = GetBool(nameof(DesktopNoDisplay), DesktopNoDisplay);
         DesktopTerminal = GetBool(nameof(DesktopTerminal), DesktopTerminal);
@@ -191,6 +195,8 @@ public class ConfigurationReader
         SetupSuffixOutput = GetOptional(nameof(SetupSuffixOutput), ValueFlags.SafeNoSpace);
         SetupVersionOutput = GetBool(nameof(SetupVersionOutput), SetupVersionOutput);
         SetupUninstallScript = GetOptional(nameof(SetupUninstallScript), ValueFlags.None);
+
+        ZipVersionOutput = GetBool(nameof(ZipVersionOutput), ZipVersionOutput);
 
         // Not actually a key-value, but a comment
         PupnetVersion = ExtractVersion(reader.ToString());
@@ -260,6 +266,7 @@ public class ConfigurationReader
     public string? PublisherLinkName { get; } = "Home Page";
     public string? PublisherLinkUrl { get; }
     public string? PublisherEmail { get; }
+    public string? PublisherGpgKeyId { get; }
 
     public bool DesktopNoDisplay { get; }
     public bool DesktopTerminal { get; } = true;
@@ -283,14 +290,14 @@ public class ConfigurationReader
 
     public string FlatpakPlatformRuntime { get; } = "org.freedesktop.Platform";
     public string FlatpakPlatformSdk { get; } = "org.freedesktop.Sdk";
-    public string FlatpakPlatformVersion { get; } = "23.08";
+    public string FlatpakPlatformVersion { get; } = "25.08";
     public IReadOnlyCollection<string> FlatpakFinishArgs { get; } = ["--socket=x11"];
     public string? FlatpakBuilderArgs { get; } = "";
 
     public bool RpmAutoReq { get; } = false;
     public bool RpmAutoProv { get; } = true;
-    public IReadOnlyCollection<string> RpmRequires { get; } = ["krb5-libs", "libicu", "openssl-libs"];
-    public IReadOnlyCollection<string> DebianRecommends { get; } = ["libc6", "libgcc1", "libgssapi-krb5-2", "libicu70", "libssl3", "libstdc++6", "zlib1g"];
+    public IReadOnlyCollection<string> RpmRequires { get; } = ["glibc", "libgcc", "ca-certificates", "openssl-libs", "libstdc++", "libicu", "tzdata", "krb5-libs"];
+    public IReadOnlyCollection<string> DebianRecommends { get; } = ["libc6", "libgcc-s1", "libgssapi-krb5-2", "libicu72", "libssl3", "libstdc++6", "zlib1g"];
 
     public string? SetupGroupName { get; }
     public bool SetupAdminInstall { get; }
@@ -300,6 +307,9 @@ public class ConfigurationReader
     public string? SetupSuffixOutput { get; }
     public bool SetupVersionOutput { get; }
     public string? SetupUninstallScript { get; }
+
+    public bool ZipVersionOutput { get; } = true;
+
 
     public string? PupnetVersion { get; }
 
@@ -459,6 +469,10 @@ public class ConfigurationReader
                 $"Publisher or maintainer email contact. Although optional, some package builders (i.e. DEB) require it",
                 $"and may warn or fail unless provided."));
 
+        sb.Append(CreateHelpField(nameof(PublisherGpgKeyId), PublisherGpgKeyId, style,
+                $"Publisher GPG key fingerprint for Linux package signing. This must be in the keyring and is used for AppImage,",
+                "RPM and Flatpak (Deb files are not signed). Do NOT include spaces. If the key requires a passphrase, the build may",
+                "require desktop specific interaction. Signing is optional but recommended. Leave blank to disable."));
 
 
         sb.Append(CreateBreaker("DESKTOP INTEGRATION", style));
@@ -528,13 +542,13 @@ public class ConfigurationReader
                 $"publish, but before the final output is built. This could, for example, be a script which copies",
                 $"additional files into the build directory given by {MacroId.BuildAppBin.ToVar()}. The working directory will be",
                 $"the location of this file. This value is optional, but becomes mandatory if {nameof(DotnetProjectPath)} equals",
-                $"'{PathDisable}'. This value may use macro variables. A script may also use these as environment",
+                $"'{PathDisable}'. This value may use macro variables. The script may also use these as environment",
                 $"variables, such as ${{BUILD_APP_BIN}}. See {macroHelp} for reference."));
 
         sb.Append(CreateHelpField(nameof(DotnetPostPublishOnWindows), DotnetPostPublishOnWindows, style,
                 $"Post-publish (or standalone build) command on Windows (ignored on Linux). This should perform the",
-                $"equivalent operation as {nameof(DotnetPostPublish)}, but using a batch script. This value may use macro",
-                $"variables. A script may also use these as environment variables, such as %BUILD_APP_BIN%.",
+                $"equivalent operation as {nameof(DotnetPostPublish)}, but using a Windows specific script. This value may use",
+                $"macro variables. The script may also use these as environment variables, such as %BUILD_APP_BIN%.",
                 $"See {macroHelp} for reference."));
 
 
@@ -556,7 +570,7 @@ public class ConfigurationReader
 
         sb.Append(CreateHelpField(nameof(AppImageArgs), AppImageArgs, style,
                 $"Additional arguments for use with appimagetool, i.e. '--no-appstream' to disable pedantic metadata checking.",
-                $"Use for signing with '--sign'. Default is empty."));
+                $"Do not use for signing if {nameof(PublisherGpgKeyId)} is used. Default is empty."));
 
         sb.Append(CreateHelpField(nameof(AppImageRuntimePath), AppImageRuntimePath, style,
                 $"Optional path to AppImage fuse runtime(s), but not to be confused with .NET runtime ID. If {nameof(AppImageRuntimePath)} is",
@@ -603,8 +617,8 @@ public class ConfigurationReader
                 $"Refer: https://docs.flatpak.org/en/latest/sandbox-permissions.html"));
 
         sb.Append(CreateHelpField(nameof(FlatpakBuilderArgs), FlatpakBuilderArgs, style,
-                $"Additional arguments for use with flatpak-builder. Useful for signing. Default is empty.",
-                $"See flatpak-builder --help."));
+                $"Additional arguments for use with flatpak-builder. Do not use for signing if {nameof(PublisherGpgKeyId)} is used.",
+                $"Default is empty. See flatpak-builder --help."));
 
 
 
@@ -679,6 +693,14 @@ public class ConfigurationReader
         sb.Append(CreateHelpField(nameof(SetupUninstallScript), SetupUninstallScript, style,
             $"Optional name of a script to run before uninstall with InnoSetup. The file is relative to the directory of the",
             $"application and must have a default file association. This binds to the `[UninstallRun]` section of InnoSetup."));
+
+
+
+        sb.Append(CreateBreaker("ZIP OPTIONS", style));
+
+        sb.Append(CreateHelpField(nameof(ZipVersionOutput), ZipVersionOutput, style,
+                $"Boolean (true or false) which sets whether to include the application version in the zip/tar.gz filename, i.e.",
+                $"'HelloWorld-1.2.3-x86_64.zip'. Default is true. It is ignored if the output filename is specified at command line."));
 
         return sb.ToString().Trim().ReplaceLineEndings("\n");
     }
