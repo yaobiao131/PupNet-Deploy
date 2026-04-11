@@ -1,4 +1,4 @@
-+ 1.10.0;2026-04-10
++ 1.10.0;2026-04-11
 - Tool published for .NET 10.0 LTS now with RollForward (note. 1.9.1 targets .NET 8.0).
 - Tested against InnoSetup 6.7.1
 - Enhancement: Added multiple supported languages to InnoSetup by default #40
