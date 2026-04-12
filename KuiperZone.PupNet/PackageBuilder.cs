@@ -636,7 +636,7 @@ public abstract class PackageBuilder
 
             if (IsGpgSigning)
             {
-                var dest = Path.Combine(OutputArtifactsDirectory, Path.GetFileName(Configuration.PublisherId)) + ".public-sign";
+                var dest = Path.Combine(OutputArtifactsDirectory, Path.GetFileName(Configuration.PublisherId)) + ".public";
 
                 Operations.CreateDirectory(OutputArtifactsDirectory);
                 Operations.Execute("gpg", $"--export -a -o \"{dest}.asc\" {Configuration.PublisherGpgKeyId}");

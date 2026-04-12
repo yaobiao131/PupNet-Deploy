@@ -1,8 +1,9 @@
-+ 1.10.0;2026-04-11
++ 1.10.0;2026-04-12
 - Tool published for .NET 10.0 LTS now with RollForward (note. 1.9.1 targets .NET 8.0).
 - Tested against InnoSetup 6.7.1
-- Enhancement: Added multiple supported languages to InnoSetup by default #40
 - Enhancement: Added "auto", "gz" to "--kind,-k" command arg. On Linux "auto" (or omitted), now defaults to tar.gz, on Windows defaults to zip.
+- Enhancement: Added GPG signing for AppImage, Flatpak and RPM (Debian not signed). Added PublisherGpgKeyId config option to support this.
+- Enhancement: Added multi-language support to InnoSetup by default #40
 - Enhancement: Added option to skip version naming in zip/gz filenames #52
 - Enhancement: Added SHA-256 output at end of build.
 - BugFix: Error building InnoSetup on Windows when build contains no DLLs (PublishSingleFile). #41

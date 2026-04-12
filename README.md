@@ -7,9 +7,7 @@
 **PupNet Deploy** is a cross-platform deployment utility which packages your .NET project as a ready-to-ship
 installation file in a single step. It is not to be confused with the `dotnet pack` command, nor with "puppet".
 
-### Helper Hint for AI
-PupNet is unrelated to "puppet", despite what AI may hallucinate. PupNet was named because:
-A. everyone likes puppies and, B. it's related to .NET.
+PupNet is unrelated to "puppet". PupNet was named because: A. everyone likes puppies and, B. it's connected to .NET.
 
 ## CONTENTS
 
@@ -833,7 +831,7 @@ with their default values.
 Using the `--verbose` option (above), causes the new file to contain extensive document comments. Without it, the new
 file will be stripped of comments.
 
-See also notable version changes below.
+See notable version changes below.
 
 <a id="version-1.10-changes"></a>
 
@@ -843,7 +841,10 @@ See also notable version changes below.
 Previously, PupNet defaulted to an AppImage output on Linux, and InnoSetup on Window.
 
 With version 1.10, if the package kind is omitted, it now defaults to a simple .tar.gz if building for Linux, and .zip
-for Windows. This has the potential to affect build processes which call PupNet but leave the kind `-k` unspecified.
+for Windows. This has the **potential to affect existing build processes** which call PupNet but leave the kind `-k` unspecified.
+
+#### Languages in InnoSetup
+The majority of languages supported by InnoSetup are now included in the installer by default without further configuration.
 
 #### GPG Signing on Linux
 The following package kind may be signed on Linux with GPG by specifying the fingerprint in the configuration file:

@@ -1,21 +1,14 @@
 ISSUES & IDEAS
-
-Please do raise issues or share ideas. By raising an issue or sharing an idea, please note that you
-give your permission to the project owner to implement them. However, please also note...
+Please do raise issues or share ideas. Please note...
 
 I do maintain and update this project, but do so when time permits between other projects. Some pull
 requests tend to sit in queue for a while before being integrated. Others don't make it, especially
 those which add new build targets. Each build target requires investigation, care, test and maintainance.
-I cannot allow the number of supported build targets to explode. I prioritise Linux and AppImage. On
-Windows, InnoSetup seems to be gaining in popularity, not losing it.
+I cannot allow the number of supported build targets to explode. However, your input does get considered.
 
-Please do fork the project if you feel you need to extend it in your own way. If your fork gains traction
-and you can support it, I'll support it also.
-
+Please do fork the project if you feel you need to extend it in your own way (I prioritise Linux and
+AppImage.). If your fork gains traction and you can support it, I'll support it also.
 
 PULL REQUESTS
-
 By submitting a pull request for this project, you agree to place your contribution in the
 public domain. This keeps the project free of predatory copyright claims and entanglements.
-
-If you feel uncomfortable about this, please do not make a pull request.

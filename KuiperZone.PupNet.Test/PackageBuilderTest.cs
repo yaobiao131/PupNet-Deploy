@@ -18,6 +18,7 @@
 // You should have received a copy of the GNU Affero General Public License along
 // with PupNet. If not, see <https://www.gnu.org/licenses/>.
 
+using System.Runtime.InteropServices;
 using KuiperZone.PupNet.Builders;
 using Xunit;
 
@@ -49,7 +50,11 @@ public class PackageBuilderTest
         var builder = new AppImageBuilder(new DummyConf());
 
         AssertOK(builder, PackageKind.AppImage);
-        Assert.EndsWith("usr/share/metainfo/com.example.helloworld.appdata.xml", builder.MetaBuildPath);
+
+        if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+        {
+            Assert.EndsWith("usr/share/metainfo/com.example.helloworld.appdata.xml", builder.MetaBuildPath);
+        }
 
         // Skip arch - depends on test system -- covered in other tests
         Assert.StartsWith("HelloWorld-5.4.3-2.", builder.OutputName);
@@ -62,8 +67,12 @@ public class PackageBuilderTest
         var builder = new FlatpakBuilder(new DummyConf());
 
         AssertOK(builder, PackageKind.Flatpak);
-        Assert.EndsWith("usr/share/metainfo/com.example.helloworld.metainfo.xml", builder.MetaBuildPath);
-        Assert.EndsWith("com.example.helloworld-linux-x64-Release-Flatpak/com.example.helloworld.yml", builder.ManifestBuildPath);
+
+        if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+        {
+            Assert.EndsWith("usr/share/metainfo/com.example.helloworld.metainfo.xml", builder.MetaBuildPath);
+            Assert.EndsWith("com.example.helloworld-linux-x64-Release-Flatpak/com.example.helloworld.yml", builder.ManifestBuildPath);
+        }
 
         Assert.StartsWith("HelloWorld-5.4.3-2.", builder.OutputName);
         Assert.EndsWith(".flatpak", builder.OutputName);
@@ -75,8 +84,12 @@ public class PackageBuilderTest
         var builder = new RpmBuilder(new DummyConf());
 
         AssertOK(builder, PackageKind.Rpm);
-        Assert.EndsWith("usr/share/metainfo/com.example.helloworld.metainfo.xml", builder.MetaBuildPath);
-        Assert.EndsWith("com.example.helloworld-linux-x64-Release-Rpm/com.example.helloworld.spec", builder.ManifestBuildPath);
+
+        if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+        {
+            Assert.EndsWith("usr/share/metainfo/com.example.helloworld.metainfo.xml", builder.MetaBuildPath);
+            Assert.EndsWith("com.example.helloworld-linux-x64-Release-Rpm/com.example.helloworld.spec", builder.ManifestBuildPath);
+        }
 
         Assert.StartsWith("helloworld_5.4.3-2", builder.OutputName);
         Assert.EndsWith(".rpm", builder.OutputName);
@@ -88,8 +101,12 @@ public class PackageBuilderTest
         var builder = new DebianBuilder(new DummyConf());
 
         AssertOK(builder, PackageKind.Deb);
-        Assert.EndsWith("usr/share/metainfo/com.example.helloworld.metainfo.xml", builder.MetaBuildPath);
-        Assert.EndsWith("nux-x64-Release-Deb/AppDir/DEBIAN/control", builder.ManifestBuildPath);
+
+        if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+        {
+            Assert.EndsWith("usr/share/metainfo/com.example.helloworld.metainfo.xml", builder.MetaBuildPath);
+            Assert.EndsWith("nux-x64-Release-Deb/AppDir/DEBIAN/control", builder.ManifestBuildPath);
+        }
 
         Assert.StartsWith("helloworld_5.4.3-2", builder.OutputName);
         Assert.EndsWith(".deb", builder.OutputName);

@@ -76,7 +76,7 @@ public class ArgumentReaderTest
         {
             var args = new ArgumentReader();
 
-            // Expect gz on linux and 
+            // Expect gz on linux and
             Assert.Equal(PackageKind.Gz, args.Kind);
 
             args = new ArgumentReader("-k rpm");
@@ -86,7 +86,7 @@ public class ArgumentReaderTest
         if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
         {
             var args = new ArgumentReader();
-            Assert.Equal(PackageKind.Setup, args.Kind);
+            Assert.Equal(PackageKind.Zip, args.Kind);
 
             args = new ArgumentReader("-k zip");
             Assert.Equal(PackageKind.Zip, args.Kind);
